@@ -1,29 +1,35 @@
 import React from 'react'
 import { TodoItem } from './TodoItem'
-
-interface Todo {
-  id: string
-  text: string
-  completed: boolean
-}
+import { Todo } from '../types/todo'
 
 interface TodoListProps {
-  todos: Todo[]
-  onToggle: (id: string) => void
-  onDelete: (id: string) => void
+  todos: Todo[];
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  onAddSubTask: (todoId: string, subTaskText: string) => void;
+  onToggleSubTask: (todoId: string, subTaskId: string) => void;
+  onDeleteSubTask: (todoId: string, subTaskId: string) => void;
 }
 
-export const TodoList: React.FC<TodoListProps> = ({ todos, onToggle, onDelete }) => {
+export const TodoList: React.FC<TodoListProps> = ({ 
+  todos, 
+  onToggle, 
+  onDelete, 
+  onAddSubTask, 
+  onToggleSubTask, 
+  onDeleteSubTask 
+}) => {
   return (
-    <div className="space-y-2">
+    <div>
       {todos.map((todo) => (
         <TodoItem
           key={todo.id}
-          id={todo.id}
-          text={todo.text}
-          completed={todo.completed}
+          todo={todo}
           onToggle={onToggle}
           onDelete={onDelete}
+          onAddSubTask={onAddSubTask}
+          onToggleSubTask={onToggleSubTask}
+          onDeleteSubTask={onDeleteSubTask}
         />
       ))}
     </div>

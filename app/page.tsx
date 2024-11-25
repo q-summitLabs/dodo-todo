@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, LogOut } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import Image from "next/image";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Task {
   _id: string;
@@ -39,6 +56,7 @@ export default function Home() {
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [listToDelete, setListToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -118,6 +136,33 @@ export default function Home() {
       setError("An error occurred while adding the list");
       console.error(err);
       setLists((prevLists) => prevLists.filter((list) => list._id !== tempId));
+    }
+  };
+
+  const deleteList = async (id: string) => {
+    setLists((prevLists) => prevLists.filter((list) => list._id !== id));
+    if (selectedList === id) {
+      const remainingLists = lists.filter((list) => list._id !== id);
+      if (remainingLists.length > 0) {
+        setSelectedList(remainingLists[0]._id);
+        fetchTasks(remainingLists[0]._id);
+      } else {
+        setSelectedList(null);
+        setTasks([]);
+      }
+    }
+
+    try {
+      const response = await fetch(`/api/lists?id=${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete list");
+      }
+    } catch (err) {
+      setError("An error occurred while deleting the list");
+      console.error(err);
+      fetchLists(); // Refetch all lists if delete fails
     }
   };
 
@@ -202,6 +247,10 @@ export default function Home() {
     }
   };
 
+  const handleSignOut = () => {
+    signOut({ callbackUrl: "/login" });
+  };
+
   if (status === "loading") {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -223,13 +272,25 @@ export default function Home() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">TODO Lists</h1>
         {session?.user?.image && (
-          <Image
-            src={session.user.image}
-            alt="Profile"
-            width={40}
-            height={40}
-            className="rounded-full"
-          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="w-10 h-10 rounded-full p-0">
+                <Image
+                  src={session.user.image}
+                  alt="Profile"
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sign out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 
@@ -250,24 +311,55 @@ export default function Home() {
               </Button>
             </div>
           </form>
-          <Select
-            value={selectedList || ""}
-            onValueChange={(value) => {
-              setSelectedList(value);
-              fetchTasks(value);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a list" />
-            </SelectTrigger>
-            <SelectContent>
-              {lists.map((list) => (
-                <SelectItem key={list._id} value={list._id}>
-                  {list.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-2">
+            <Select
+              value={selectedList || ""}
+              onValueChange={(value) => {
+                setSelectedList(value);
+                fetchTasks(value);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a list" />
+              </SelectTrigger>
+              <SelectContent>
+                {lists.map((list) => (
+                  <SelectItem key={list._id} value={list._id}>
+                    {list.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedList && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    <div className="flex items-center justify-center w-full">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete List
+                    </div>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete
+                      the list and all tasks associated with it.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteList(selectedList)}>
+                      Continue
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
 
         <div className="md:col-span-2">

@@ -53,7 +53,6 @@ export default function Home() {
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTask.trim()) return;
-    setIsLoading(true);
     setError(null);
     try {
       const response = await fetch("/api/tasks", {
@@ -70,13 +69,10 @@ export default function Home() {
     } catch (err) {
       setError("An error occurred while adding the task");
       console.error(err);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const toggleTask = async (id: string, completed: boolean) => {
-    setIsLoading(true);
     setError(null);
     try {
       const response = await fetch("/api/tasks", {
@@ -94,13 +90,10 @@ export default function Home() {
     } catch (err) {
       setError("An error occurred while updating the task");
       console.error(err);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const deleteTask = async (id: string) => {
-    setIsLoading(true);
     setError(null);
     try {
       const response = await fetch("/api/tasks", {
@@ -115,8 +108,6 @@ export default function Home() {
     } catch (err) {
       setError("An error occurred while deleting the task");
       console.error(err);
-    } finally {
-      setIsLoading(false);
     }
   };
 

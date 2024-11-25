@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2 } from "lucide-react";
+import { v4 as uuidv4 } from "uuid";
 
 interface Task {
   _id: string;
@@ -27,8 +28,6 @@ export default function Home() {
       router.push("/login");
     } else if (status === "authenticated") {
       fetchTasks();
-    } else if (status === "loading") {
-      setIsLoading(true);
     }
   }, [status, router]);
 
@@ -53,7 +52,13 @@ export default function Home() {
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTask.trim()) return;
-    setError(null);
+
+    const tempId = uuidv4();
+    const tempTask = { _id: tempId, title: newTask, completed: false };
+
+    setTasks((prevTasks) => [tempTask, ...prevTasks]);
+    setNewTask("");
+
     try {
       const response = await fetch("/api/tasks", {
         method: "POST",
@@ -63,17 +68,24 @@ export default function Home() {
       if (!response.ok) {
         throw new Error("Failed to add task");
       }
-      const task = await response.json();
-      setTasks((prevTasks) => [task, ...prevTasks]);
-      setNewTask("");
+      const addedTask = await response.json();
+      setTasks((prevTasks) =>
+        prevTasks.map((task) => (task._id === tempId ? addedTask : task))
+      );
     } catch (err) {
       setError("An error occurred while adding the task");
       console.error(err);
+      setTasks((prevTasks) => prevTasks.filter((task) => task._id !== tempId));
     }
   };
 
   const toggleTask = async (id: string, completed: boolean) => {
-    setError(null);
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task._id === id ? { ...task, completed: !completed } : task
+      )
+    );
+
     try {
       const response = await fetch("/api/tasks", {
         method: "PUT",
@@ -83,18 +95,20 @@ export default function Home() {
       if (!response.ok) {
         throw new Error("Failed to update task");
       }
-      const updatedTask = await response.json();
-      setTasks((prevTasks) =>
-        prevTasks.map((task) => (task._id === id ? updatedTask : task))
-      );
     } catch (err) {
       setError("An error occurred while updating the task");
       console.error(err);
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task._id === id ? { ...task, completed: completed } : task
+        )
+      );
     }
   };
 
   const deleteTask = async (id: string) => {
-    setError(null);
+    setTasks((prevTasks) => prevTasks.filter((task) => task._id !== id));
+
     try {
       const response = await fetch("/api/tasks", {
         method: "DELETE",
@@ -104,10 +118,10 @@ export default function Home() {
       if (!response.ok) {
         throw new Error("Failed to delete task");
       }
-      setTasks((prevTasks) => prevTasks.filter((task) => task._id !== id));
     } catch (err) {
       setError("An error occurred while deleting the task");
       console.error(err);
+      await fetchTasks(); // Refetch all tasks if delete fails
     }
   };
 
@@ -141,11 +155,8 @@ export default function Home() {
             onChange={(e) => setNewTask(e.target.value)}
             placeholder="Add a new task"
             className="flex-grow"
-            disabled={isLoading}
           />
-          <Button type="submit" disabled={isLoading}>
-            Add
-          </Button>
+          <Button type="submit">Add</Button>
         </div>
       </form>
       {isLoading ? (
@@ -160,7 +171,6 @@ export default function Home() {
               <Checkbox
                 checked={task.completed}
                 onCheckedChange={() => toggleTask(task._id, task.completed)}
-                disabled={isLoading}
               />
               <span
                 className={task.completed ? "line-through text-gray-500" : ""}
@@ -172,7 +182,6 @@ export default function Home() {
                 size="icon"
                 className="ml-auto"
                 onClick={() => deleteTask(task._id)}
-                disabled={isLoading}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

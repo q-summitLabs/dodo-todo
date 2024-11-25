@@ -22,11 +22,14 @@ export default async function middleware(req: NextRequest) {
       headers: response.headers,
     });
   }
+
   const { pathname } = req.nextUrl;
+
   // Allow requests to the API routes
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
   }
+
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
   // Allow requests to the login page

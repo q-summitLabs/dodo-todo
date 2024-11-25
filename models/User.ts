@@ -1,33 +1,25 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const UserSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-    },
+const UserSchema = new mongoose.Schema(
+  {
+    name: String,
     email: {
-        type: String,
-        required: true,
-        unique: true,
+      type: String,
+      required: true,
+      unique: true,
     },
     image: String,
-    googleId: {
-        type: String,
-        required: true,
-        unique: true,
-    },
+    googleId: String,
+    lastLogin: Date,
     createdAt: {
-        type: Date,
-        default: Date.now,
+      type: Date,
+      default: Date.now,
     },
-    lastLogin: {
-        type: Date,
-        default: Date.now,
-    },
-}, {  
+  },
+  {
     timestamps: true,
-    collection: 'users' // This sets the collection name
-});
+    collection: "users", // This sets the collection name
+  }
+);
 
-export default mongoose.models.User || mongoose.model('User', UserSchema);
-  
+export default mongoose.models.User || mongoose.model("User", UserSchema);

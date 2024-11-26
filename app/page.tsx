@@ -347,7 +347,7 @@ export default function Home() {
         <main className="flex-1 overflow-y-auto p-6">
           <Card className="w-full max-w-2xl mx-auto">
             <CardContent className="p-6">
-              <h2 className="text-2xl font-bold mb-4">
+              <h2 className="text-2xl font-bold mb-2">
                 {getSelectedListName()}
               </h2>
               {error && <p className="text-red-500 mb-4">{error}</p>}

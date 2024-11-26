@@ -67,6 +67,12 @@ export function TaskManagement({
   );
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const [editingSubtask, setEditingSubtask] = useState<{
+    taskId: string;
+    subtaskIndex: number;
+    title: string;
+  } | null>(null);
 
   const handleToggleSubtask = (taskId: string, subtaskIndex: number) => {
     const task = tasks.find((t) => t._id === taskId);
@@ -89,6 +95,20 @@ export function TaskManagement({
     }
   };
 
+  const handleAddSubtask = (taskId: string) => {
+    if (newSubtaskTitle.trim()) {
+      const task = tasks.find((t) => t._id === taskId);
+      if (task) {
+        const updatedSubtasks = [
+          ...task.subtasks,
+          { title: newSubtaskTitle, completed: false },
+        ];
+        onUpdateTask(taskId, { subtasks: updatedSubtasks });
+        setNewSubtaskTitle("");
+      }
+    }
+  };
+
   const handleEditTask = () => {
     if (editingTask && editingTask.title.trim()) {
       onUpdateTask(editingTask._id, {
@@ -96,6 +116,31 @@ export function TaskManagement({
         dueDate: editingTask.dueDate,
       });
       setEditingTask(null);
+    }
+  };
+
+  const handleDeleteSubtask = (taskId: string, subtaskIndex: number) => {
+    const task = tasks.find((t) => t._id === taskId);
+    if (task) {
+      const updatedSubtasks = task.subtasks.filter(
+        (_, index) => index !== subtaskIndex
+      );
+      onUpdateTask(taskId, { subtasks: updatedSubtasks });
+    }
+  };
+
+  const handleEditSubtask = () => {
+    if (editingSubtask && editingSubtask.title.trim()) {
+      const task = tasks.find((t) => t._id === editingSubtask.taskId);
+      if (task) {
+        const updatedSubtasks = task.subtasks.map((subtask, index) =>
+          index === editingSubtask.subtaskIndex
+            ? { ...subtask, title: editingSubtask.title }
+            : subtask
+        );
+        onUpdateTask(editingSubtask.taskId, { subtasks: updatedSubtasks });
+        setEditingSubtask(null);
+      }
     }
   };
 
@@ -115,19 +160,24 @@ export function TaskManagement({
               <Checkbox
                 checked={task.completed}
                 onCheckedChange={() => onToggleTask(task._id, task.completed)}
+                id={`task-${task._id}`}
               />
-              <span
+              <label
+                htmlFor={`task-${task._id}`}
                 className={`flex-grow ${
                   task.completed ? "line-through text-gray-500" : ""
                 }`}
               >
                 {task.title}
-              </span>
-              {task.dueDate && (
-                <span className="text-sm text-gray-500">
-                  Due: {format(new Date(task.dueDate), "MMM d, yyyy")}
-                </span>
-              )}
+              </label>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setEditingTask(task)}
+              >
+                <Edit2 className="h-4 w-4" />
+                <span className="sr-only">Edit task</span>
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -140,42 +190,84 @@ export function TaskManagement({
                 ) : (
                   <ChevronDown className="h-4 w-4" />
                 )}
+                <span className="sr-only">
+                  {expandedTask === task._id ? "Collapse task" : "Expand task"}
+                </span>
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setEditingTask(task)}
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
+              {task.dueDate && (
+                <span className="text-sm text-gray-500">
+                  Due: {format(new Date(task.dueDate), "MMM d, yyyy")}
+                </span>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => onDeleteTask(task._id)}
               >
                 <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Delete task</span>
               </Button>
             </div>
-            {expandedTask === task._id && task.subtasks.length > 0 && (
-              <ul className="mt-2 pl-6 space-y-1">
-                {task.subtasks.map((subtask, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <Checkbox
-                      checked={subtask.completed}
-                      onCheckedChange={() =>
-                        handleToggleSubtask(task._id, index)
-                      }
-                    />
-                    <span
-                      className={
-                        subtask.completed ? "line-through text-gray-500" : ""
-                      }
-                    >
-                      {subtask.title}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+            {expandedTask === task._id && (
+              <div className="mt-2 pl-6 space-y-2">
+                <ul className="space-y-1">
+                  {task.subtasks.map((subtask, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={subtask.completed}
+                        onCheckedChange={() =>
+                          handleToggleSubtask(task._id, index)
+                        }
+                        id={`subtask-${task._id}-${index}`}
+                      />
+                      <label
+                        htmlFor={`subtask-${task._id}-${index}`}
+                        className={`flex-grow ${
+                          subtask.completed ? "line-through text-gray-500" : ""
+                        }`}
+                      >
+                        {subtask.title}
+                      </label>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          setEditingSubtask({
+                            taskId: task._id,
+                            subtaskIndex: index,
+                            title: subtask.title,
+                          })
+                        }
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        <span className="sr-only">Edit subtask</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteSubtask(task._id, index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Delete subtask</span>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    placeholder="New subtask"
+                    className="flex-grow"
+                  />
+                  <Button
+                    onClick={() => handleAddSubtask(task._id)}
+                    disabled={!newSubtaskTitle.trim()}
+                  >
+                    Add Subtask
+                  </Button>
+                </div>
+              </div>
             )}
           </li>
         ))}
@@ -299,6 +391,42 @@ export function TaskManagement({
             disabled={!editingTask?.title.trim()}
           >
             Update Task
+          </Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!editingSubtask}
+        onOpenChange={() => setEditingSubtask(null)}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Subtask</DialogTitle>
+          </DialogHeader>
+          {editingSubtask && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-subtask-title" className="text-right">
+                  Title
+                </Label>
+                <Input
+                  id="edit-subtask-title"
+                  value={editingSubtask.title}
+                  onChange={(e) =>
+                    setEditingSubtask({
+                      ...editingSubtask,
+                      title: e.target.value,
+                    })
+                  }
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+          )}
+          <Button
+            onClick={handleEditSubtask}
+            disabled={!editingSubtask?.title.trim()}
+          >
+            Update Subtask
           </Button>
         </DialogContent>
       </Dialog>

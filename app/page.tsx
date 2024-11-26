@@ -1,38 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Trash2, Plus, LogOut } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
-import Image from "next/image";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Header } from "@/components/main/Header";
+import { ListManagement } from "@/components/main/ListManagement";
+import { TaskManagement } from "@/components/main/TaskManagement";
 
 interface Task {
   _id: string;
@@ -47,16 +21,13 @@ interface List {
 }
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [lists, setLists] = useState<List[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTask, setNewTask] = useState("");
-  const [newList, setNewList] = useState("");
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [listToDelete, setListToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -107,21 +78,17 @@ export default function Home() {
     }
   };
 
-  const addList = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newList.trim()) return;
-
+  const addList = async (name: string) => {
     const tempId = uuidv4();
-    const tempList = { _id: tempId, name: newList };
+    const tempList = { _id: tempId, name };
 
     setLists((prevLists) => [...prevLists, tempList]);
-    setNewList("");
 
     try {
       const response = await fetch("/api/lists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newList }),
+        body: JSON.stringify({ name }),
       });
       if (!response.ok) {
         throw new Error("Failed to add list");
@@ -166,26 +133,24 @@ export default function Home() {
     }
   };
 
-  const addTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTask.trim() || !selectedList) return;
+  const addTask = async (title: string) => {
+    if (!selectedList) return;
 
     const tempId = uuidv4();
     const tempTask = {
       _id: tempId,
-      title: newTask,
+      title,
       completed: false,
       listId: selectedList,
     };
 
     setTasks((prevTasks) => [tempTask, ...prevTasks]);
-    setNewTask("");
 
     try {
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTask, listId: selectedList }),
+        body: JSON.stringify({ title, listId: selectedList }),
       });
       if (!response.ok) {
         throw new Error("Failed to add task");
@@ -247,18 +212,6 @@ export default function Home() {
     }
   };
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: "/login" });
-  };
-
-  if (status === "loading") {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        Authenticating...
-      </div>
-    );
-  }
-
   if (status === "unauthenticated") {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -269,149 +222,27 @@ export default function Home() {
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">TODO Lists</h1>
-        {session?.user?.image && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-10 h-10 rounded-full p-0">
-                <Image
-                  src={session.user.image}
-                  alt="Profile"
-                  width={40}
-                  height={40}
-                  className="rounded-full"
-                />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sign out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-
+      <Header />
+      {error && <p className="text-red-500 mb-4">{error}</p>}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-1">
-          <h2 className="text-xl font-semibold mb-4">Your Lists</h2>
-          <form onSubmit={addList} className="mb-4">
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                value={newList}
-                onChange={(e) => setNewList(e.target.value)}
-                placeholder="New list name"
-                className="flex-grow"
-              />
-              <Button type="submit">
-                <Plus className="w-4 h-4 mr-2" /> Add List
-              </Button>
-            </div>
-          </form>
-          <div className="space-y-2">
-            <Select
-              value={selectedList || ""}
-              onValueChange={(value) => {
-                setSelectedList(value);
-                fetchTasks(value);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a list" />
-              </SelectTrigger>
-              <SelectContent>
-                {lists.map((list) => (
-                  <SelectItem key={list._id} value={list._id}>
-                    {list.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedList && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full">
-                    <div className="flex items-center justify-center w-full">
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete List
-                    </div>
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Are you absolutely sure?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete
-                      the list and all tasks associated with it.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteList(selectedList)}>
-                      Continue
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </div>
-        </div>
-
-        <div className="md:col-span-2">
-          <h2 className="text-xl font-semibold mb-4">Tasks</h2>
-          {error && <p className="text-red-500 mb-4">{error}</p>}
-          <form onSubmit={addTask} className="mb-4">
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-                placeholder="Add a new task"
-                className="flex-grow"
-              />
-              <Button type="submit" disabled={!selectedList}>
-                Add Task
-              </Button>
-            </div>
-          </form>
-          {isLoading ? (
-            <div className="text-center">Loading tasks...</div>
-          ) : (
-            <ul className="space-y-2">
-              {tasks.map((task) => (
-                <li
-                  key={task._id}
-                  className="flex items-center gap-2 p-2 border rounded"
-                >
-                  <Checkbox
-                    checked={task.completed}
-                    onCheckedChange={() => toggleTask(task._id, task.completed)}
-                  />
-                  <span
-                    className={
-                      task.completed ? "line-through text-gray-500" : ""
-                    }
-                  >
-                    {task.title}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="ml-auto"
-                    onClick={() => deleteTask(task._id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <ListManagement
+          lists={lists}
+          selectedList={selectedList}
+          onAddList={addList}
+          onSelectList={(id) => {
+            setSelectedList(id);
+            fetchTasks(id);
+          }}
+          onDeleteList={deleteList}
+        />
+        <TaskManagement
+          tasks={tasks}
+          isLoading={isLoading}
+          selectedList={selectedList}
+          onAddTask={addTask}
+          onToggleTask={toggleTask}
+          onDeleteTask={deleteTask}
+        />
       </div>
     </div>
   );

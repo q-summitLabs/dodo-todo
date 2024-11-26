@@ -10,7 +10,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Trash2, ChevronDown, ChevronUp, Plus, Calendar } from "lucide-react";
+import {
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Calendar,
+  Edit2,
+} from "lucide-react";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
@@ -59,6 +66,7 @@ export function TaskManagement({
     undefined
   );
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const handleToggleSubtask = (taskId: string, subtaskIndex: number) => {
     const task = tasks.find((t) => t._id === taskId);
@@ -81,6 +89,16 @@ export function TaskManagement({
     }
   };
 
+  const handleEditTask = () => {
+    if (editingTask && editingTask.title.trim()) {
+      onUpdateTask(editingTask._id, {
+        title: editingTask.title,
+        dueDate: editingTask.dueDate,
+      });
+      setEditingTask(null);
+    }
+  };
+
   if (isLoading) {
     return <div>Loading tasks...</div>;
   }
@@ -96,9 +114,7 @@ export function TaskManagement({
             <div className="flex items-center gap-2">
               <Checkbox
                 checked={task.completed}
-                onCheckedChange={(checked) =>
-                  onToggleTask(task._id, checked as boolean)
-                }
+                onCheckedChange={() => onToggleTask(task._id, task.completed)}
               />
               <span
                 className={`flex-grow ${
@@ -107,6 +123,11 @@ export function TaskManagement({
               >
                 {task.title}
               </span>
+              {task.dueDate && (
+                <span className="text-sm text-gray-500">
+                  Due: {format(new Date(task.dueDate), "MMM d, yyyy")}
+                </span>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -120,11 +141,13 @@ export function TaskManagement({
                   <ChevronDown className="h-4 w-4" />
                 )}
               </Button>
-              {task.dueDate && (
-                <span className="text-sm text-gray-500">
-                  Due: {format(new Date(task.dueDate), "MMM d, yyyy")}
-                </span>
-              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setEditingTask(task)}
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -213,6 +236,69 @@ export function TaskManagement({
           </div>
           <Button onClick={handleAddTask} disabled={!newTaskTitle.trim()}>
             Add Task
+          </Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+          </DialogHeader>
+          {editingTask && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-task-title" className="text-right">
+                  Title
+                </Label>
+                <Input
+                  id="edit-task-title"
+                  value={editingTask.title}
+                  onChange={(e) =>
+                    setEditingTask({ ...editingTask, title: e.target.value })
+                  }
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-due-date" className="text-right">
+                  Due Date
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="edit-due-date"
+                      variant="outline"
+                      className={`col-span-3 justify-start text-left font-normal ${
+                        !editingTask.dueDate && "text-muted-foreground"
+                      }`}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {editingTask.dueDate ? (
+                        format(new Date(editingTask.dueDate), "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={editingTask.dueDate}
+                      onSelect={(date) =>
+                        setEditingTask({ ...editingTask, dueDate: date })
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          )}
+          <Button
+            onClick={handleEditTask}
+            disabled={!editingTask?.title.trim()}
+          >
+            Update Task
           </Button>
         </DialogContent>
       </Dialog>

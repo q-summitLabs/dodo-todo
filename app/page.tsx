@@ -50,6 +50,12 @@ export default function Home() {
     }
   }, [status, router]);
 
+  useEffect(() => {
+    if (selectedList) {
+      fetchTasks(selectedList);
+    }
+  }, [selectedList]);
+
   const fetchLists = async () => {
     setIsLoading(true);
     setError(null);
@@ -62,7 +68,6 @@ export default function Home() {
       setLists(data);
       if (data.length > 0) {
         setSelectedList(data[0]._id);
-        fetchTasks(data[0]._id);
       } else {
         setIsLoading(false);
       }
@@ -161,7 +166,6 @@ export default function Home() {
 
   const selectList = (id: string) => {
     setSelectedList(id);
-    setIsLoading(true);
     fetchTasks(id);
   };
 
@@ -321,7 +325,7 @@ export default function Home() {
             lists={lists}
             selectedList={selectedList}
             onAddList={addList}
-            onSelectList={setSelectedList}
+            onSelectList={selectList}
             onDeleteList={deleteList}
             onCloseSidebar={() => setIsSidebarOpen(false)}
             isSidebarOpen={isSidebarOpen}

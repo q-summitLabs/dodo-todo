@@ -4,11 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, Plus, Calendar } from "lucide-react";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 
 interface Subtask {
@@ -49,6 +57,7 @@ export function TaskManagement({
   const [newSubtask, setNewSubtask] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +65,7 @@ export function TaskManagement({
       onAddTask(newTask, selectedDate);
       setNewTask("");
       setSelectedDate(undefined);
+      setIsDialogOpen(false);
     }
   };
 
@@ -98,40 +108,61 @@ export function TaskManagement({
   return (
     <div className="md:col-span-2">
       <h2 className="text-xl font-semibold mb-4">Tasks</h2>
-      <form onSubmit={handleAddTask} className="mb-4">
-        <div className="flex gap-2">
-          <Input
-            type="text"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            placeholder="Add a new task"
-            className="flex-grow"
-          />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[280px]">
-                <Calendar className="mr-2 h-4 w-4" />
-                {selectedDate ? (
-                  format(selectedDate, "PPP")
-                ) : (
-                  <span>Pick a date</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <CalendarComponent
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          <Button type="submit" disabled={!selectedList}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger asChild>
+          <Button className="mb-4" disabled={!selectedList}>
             Add Task
           </Button>
-        </div>
-      </form>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Task</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddTask} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="task-title">Task Title</Label>
+              <Input
+                id="task-title"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+                placeholder="Enter task title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="task-due-date">Due Date (Optional)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="task-due-date"
+                    variant="outline"
+                    className={`w-full justify-start text-left font-normal ${
+                      !selectedDate && "text-muted-foreground"
+                    }`}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {selectedDate ? (
+                      format(selectedDate, "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <Button type="submit" className="w-full">
+              Add Task
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
       {isLoading ? (
         <div className="text-center">Loading tasks...</div>
       ) : (

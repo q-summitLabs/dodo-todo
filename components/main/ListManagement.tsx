@@ -1,25 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Trash2, Plus } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 
 interface List {
   _id: string;
@@ -32,6 +14,7 @@ interface ListManagementProps {
   onAddList: (name: string) => void;
   onSelectList: (id: string) => void;
   onDeleteList: (id: string) => void;
+  onCloseSidebar?: () => void;
 }
 
 export function ListManagement({
@@ -40,87 +23,58 @@ export function ListManagement({
   onAddList,
   onSelectList,
   onDeleteList,
+  onCloseSidebar,
 }: ListManagementProps) {
-  const [newList, setNewList] = useState("");
+  const [newListName, setNewListName] = useState("");
 
   const handleAddList = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newList.trim()) {
-      onAddList(newList);
-      setNewList("");
+    if (newListName.trim()) {
+      onAddList(newListName);
+      setNewListName("");
+    }
+  };
+
+  const handleSelectList = (id: string) => {
+    onSelectList(id);
+    if (window.innerWidth < 768) {
+      onCloseSidebar?.();
     }
   };
 
   return (
-    <div className="md:col-span-1">
-      <h2 className="text-xl font-semibold mb-4">Your Lists</h2>
-      <form onSubmit={handleAddList} className="mb-4">
-        <div className="flex gap-2">
-          <Input
-            type="text"
-            value={newList}
-            onChange={(e) => setNewList(e.target.value)}
-            placeholder="New list name"
-            className="flex-grow"
-          />
-          <Button type="submit">
-            <Plus className="w-4 h-4 mr-2" /> Add List
-          </Button>
-        </div>
+    <div className="space-y-4">
+      <form onSubmit={handleAddList} className="space-y-2">
+        <Input
+          type="text"
+          value={newListName}
+          onChange={(e) => setNewListName(e.target.value)}
+          placeholder="New list name"
+        />
+        <Button type="submit" className="w-full">
+          Add List
+        </Button>
       </form>
-      <div className="space-y-2">
-        <Select
-          value={selectedList || ""}
-          onValueChange={onSelectList}
-          disabled={lists.length === 0}
-        >
-          <SelectTrigger
-            className={
-              lists.length === 0 ? "opacity-50 cursor-not-allowed" : ""
-            }
-          >
-            <SelectValue
-              placeholder={
-                lists.length === 0 ? "No lists available" : "Select a list"
-              }
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {lists.map((list) => (
-              <SelectItem key={list._id} value={list._id}>
-                {list.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {selectedList && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="w-full">
-                <div className="flex items-center justify-center w-full">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete List
-                </div>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  list and all tasks associated with it.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onDeleteList(selectedList)}>
-                  Continue
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-      </div>
+      <ul className="space-y-1">
+        {lists.map((list) => (
+          <li key={list._id} className="flex items-center">
+            <Button
+              variant={selectedList === list._id ? "secondary" : "ghost"}
+              className="flex-grow justify-start"
+              onClick={() => handleSelectList(list._id)}
+            >
+              {list.name}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDeleteList(list._id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

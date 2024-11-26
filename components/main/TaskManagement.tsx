@@ -106,88 +106,92 @@ export function TaskManagement({
   };
 
   return (
-    <div className="md:col-span-2">
-      <h2 className="text-xl font-semibold mb-4">Tasks</h2>
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild>
-          <Button className="mb-4" disabled={!selectedList}>
-            Add Task
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add New Task</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAddTask} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="task-title">Task Title</Label>
-              <Input
-                id="task-title"
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-                placeholder="Enter task title"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="task-due-date">Due Date (Optional)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="task-due-date"
-                    variant="outline"
-                    className={`w-full justify-start text-left font-normal ${
-                      !selectedDate && "text-muted-foreground"
-                    }`}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {selectedDate ? (
-                      format(selectedDate, "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <Button type="submit" className="w-full">
-              Add Task
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-semibold">Tasks</h2>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button disabled={!selectedList}>Add Task</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add New Task</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddTask} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="task-title">Task Title</Label>
+                <Input
+                  id="task-title"
+                  value={newTask}
+                  onChange={(e) => setNewTask(e.target.value)}
+                  placeholder="Enter task title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-due-date">Due Date (Optional)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="task-due-date"
+                      variant="outline"
+                      className={`w-full justify-start text-left font-normal ${
+                        !selectedDate && "text-muted-foreground"
+                      }`}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {selectedDate ? (
+                        format(selectedDate, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <Button type="submit" className="w-full">
+                Add Task
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
       {isLoading ? (
         <div className="text-center">Loading tasks...</div>
       ) : (
         <ul className="space-y-4">
           {tasks.map((task) => (
-            <li key={task._id} className="border rounded p-4">
+            <li
+              key={task._id}
+              className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+            >
               <div className="flex items-center gap-2">
                 <Checkbox
                   checked={task.completed}
                   onCheckedChange={() => onToggleTask(task._id, task.completed)}
                 />
                 <span
-                  className={task.completed ? "line-through text-gray-500" : ""}
+                  className={`flex-grow ${
+                    task.completed ? "line-through text-gray-500" : ""
+                  }`}
                 >
                   {task.title}
                 </span>
                 {task.dueDate && (
-                  <span className="text-sm text-gray-500 ml-2">
+                  <span className="text-sm text-gray-500">
                     Due: {format(new Date(task.dueDate), "PPP")}
                   </span>
                 )}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="ml-auto"
                   onClick={() => onDeleteTask(task._id)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -203,7 +207,7 @@ export function TaskManagement({
                 </Button>
               </div>
               {expandedTask === task._id && (
-                <div className="mt-2 pl-6">
+                <div className="mt-4 pl-6 space-y-2">
                   <ul className="space-y-2">
                     {task.subtasks.map((subtask, index) => (
                       <li key={index} className="flex items-center gap-2">
@@ -232,7 +236,7 @@ export function TaskManagement({
                       </li>
                     ))}
                   </ul>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex gap-2">
                     <Input
                       type="text"
                       value={newSubtask}

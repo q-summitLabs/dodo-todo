@@ -7,6 +7,8 @@ import { v4 as uuidv4 } from "uuid";
 import { Header } from "@/components/main/Header";
 import { ListManagement } from "@/components/main/ListManagement";
 import { TaskManagement } from "@/components/main/TaskManagement";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
 
 interface Subtask {
   _id?: string;
@@ -36,6 +38,7 @@ export default function Home() {
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -273,6 +276,10 @@ export default function Home() {
     }
   };
 
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
   if (status === "loading") {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -290,26 +297,48 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <Header />
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <ListManagement
-          lists={lists}
-          selectedList={selectedList}
-          onAddList={addList}
-          onSelectList={selectList}
-          onDeleteList={deleteList}
-        />
-        <TaskManagement
-          tasks={tasks}
-          isLoading={isLoading}
-          selectedList={selectedList}
-          onAddTask={addTask}
-          onToggleTask={toggleTask}
-          onDeleteTask={deleteTask}
-          onUpdateTask={updateTask}
-        />
+    <div className="flex h-screen bg-gray-100">
+      <aside
+        className={`fixed md:static z-30 w-64 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="p-4">
+          <h1 className="text-2xl font-bold mb-4">Todo Lists</h1>
+          <ListManagement
+            lists={lists}
+            selectedList={selectedList}
+            onAddList={addList}
+            onSelectList={selectList}
+            onDeleteList={deleteList}
+            onCloseSidebar={closeSidebar}
+          />
+        </div>
+      </aside>
+      <div className="flex-1 flex flex-col">
+        <Header>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mr-2"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+        </Header>
+        <main className="flex-1 overflow-y-auto p-6">
+          {error && <p className="text-red-500 mb-4">{error}</p>}
+          <TaskManagement
+            tasks={tasks}
+            isLoading={isLoading}
+            selectedList={selectedList}
+            onAddTask={addTask}
+            onToggleTask={toggleTask}
+            onDeleteTask={deleteTask}
+            onUpdateTask={updateTask}
+          />
+        </main>
       </div>
     </div>
   );

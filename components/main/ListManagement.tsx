@@ -105,7 +105,8 @@ export function ListManagement({
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                   <AlertDialogDescription>
                     This action cannot be undone. This will permanently delete
-                    the list "{list.name}" and all its associated tasks.
+                    the list &quot;{list.name}&quot; and all its associated
+                    tasks.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

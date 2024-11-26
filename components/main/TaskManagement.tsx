@@ -107,11 +107,13 @@ export function TaskManagement({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Tasks</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Tasks</h2>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button disabled={!selectedList}>Add Task</Button>
+            <Button disabled={!selectedList} size="sm">
+              Add Task
+            </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -166,11 +168,11 @@ export function TaskManagement({
       {isLoading ? (
         <div className="text-center">Loading tasks...</div>
       ) : (
-        <ul className="space-y-4">
+        <ul className="space-y-2">
           {tasks.map((task) => (
             <li
               key={task._id}
-              className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+              className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm"
             >
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -178,15 +180,15 @@ export function TaskManagement({
                   onCheckedChange={() => onToggleTask(task._id, task.completed)}
                 />
                 <span
-                  className={`flex-grow ${
+                  className={`flex-grow text-sm ${
                     task.completed ? "line-through text-gray-500" : ""
                   }`}
                 >
                   {task.title}
                 </span>
                 {task.dueDate && (
-                  <span className="text-sm text-gray-500">
-                    Due: {format(new Date(task.dueDate), "PPP")}
+                  <span className="text-xs text-gray-500">
+                    {format(new Date(task.dueDate), "MMM d")}
                   </span>
                 )}
                 <Button
@@ -199,16 +201,20 @@ export function TaskManagement({
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="text-xs"
                   onClick={() =>
                     setExpandedTask(expandedTask === task._id ? null : task._id)
                   }
                 >
-                  {expandedTask === task._id ? "Hide" : "Show"} Subtasks
+                  {expandedTask === task._id ? "Hide" : "Show"}
                 </Button>
               </div>
               {expandedTask === task._id && (
-                <div className="mt-4 pl-6 space-y-2">
-                  <ul className="space-y-2">
+                <div className="mt-2 pl-6 space-y-2">
+                  <ul
+                    className="space-y-
+1"
+                  >
                     {task.subtasks.map((subtask, index) => (
                       <li key={index} className="flex items-center gap-2">
                         <Checkbox
@@ -218,17 +224,18 @@ export function TaskManagement({
                           }
                         />
                         <span
-                          className={
+                          className={`text-xs ${
                             subtask.completed
                               ? "line-through text-gray-500"
                               : ""
-                          }
+                          }`}
                         >
                           {subtask.title}
                         </span>
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-6 w-6"
                           onClick={() => handleDeleteSubtask(task._id, index)}
                         >
                           <Trash2 className="h-3 w-3" />
@@ -242,10 +249,13 @@ export function TaskManagement({
                       value={newSubtask}
                       onChange={(e) => setNewSubtask(e.target.value)}
                       placeholder="Add a subtask"
-                      className="flex-grow"
+                      className="flex-grow text-xs h-8"
                     />
-                    <Button onClick={() => handleAddSubtask(task._id)}>
-                      <Plus className="w-4 h-4 mr-2" /> Add Subtask
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddSubtask(task._id)}
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Add
                     </Button>
                   </div>
                 </div>

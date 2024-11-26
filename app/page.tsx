@@ -9,6 +9,7 @@ import { ListManagement } from "@/components/main/ListManagement";
 import { TaskManagement } from "@/components/main/TaskManagement";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Subtask {
   _id?: string;
@@ -276,8 +277,8 @@ export default function Home() {
     }
   };
 
-  const closeSidebar = () => {
-    setIsSidebarOpen(false);
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
   if (status === "loading") {
@@ -299,45 +300,56 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-gray-100">
       <aside
-        className={`fixed md:static z-30 w-64 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed md:relative z-30 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out overflow-hidden ${
+          isSidebarOpen ? "w-64" : "w-0 md:w-16"
         }`}
       >
-        <div className="p-4">
-          <h1 className="text-2xl font-bold mb-4">Todo Lists</h1>
+        <div className={`p-4 ${isSidebarOpen ? "" : "invisible md:visible"}`}>
+          <h1
+            className={`text-2xl font-bold mb-4 ${
+              isSidebarOpen ? "" : "md:hidden"
+            }`}
+          >
+            Todo Lists
+          </h1>
           <ListManagement
             lists={lists}
             selectedList={selectedList}
             onAddList={addList}
             onSelectList={selectList}
             onDeleteList={deleteList}
-            onCloseSidebar={closeSidebar}
+            onCloseSidebar={() => setIsSidebarOpen(false)}
+            isSidebarOpen={isSidebarOpen}
           />
         </div>
       </aside>
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col transition-all duration-300 ease-in-out">
         <Header>
           <Button
             variant="ghost"
             size="icon"
             className="mr-2"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            onClick={toggleSidebar}
             aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
             <Menu className="h-6 w-6" />
           </Button>
         </Header>
         <main className="flex-1 overflow-y-auto p-6">
-          {error && <p className="text-red-500 mb-4">{error}</p>}
-          <TaskManagement
-            tasks={tasks}
-            isLoading={isLoading}
-            selectedList={selectedList}
-            onAddTask={addTask}
-            onToggleTask={toggleTask}
-            onDeleteTask={deleteTask}
-            onUpdateTask={updateTask}
-          />
+          <Card className="w-full max-w-2xl mx-auto">
+            <CardContent className="p-6">
+              {error && <p className="text-red-500 mb-4">{error}</p>}
+              <TaskManagement
+                tasks={tasks}
+                isLoading={isLoading}
+                selectedList={selectedList}
+                onAddTask={addTask}
+                onToggleTask={toggleTask}
+                onDeleteTask={deleteTask}
+                onUpdateTask={updateTask}
+              />
+            </CardContent>
+          </Card>
         </main>
       </div>
     </div>

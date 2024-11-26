@@ -15,6 +15,7 @@ interface ListManagementProps {
   onSelectList: (id: string) => void;
   onDeleteList: (id: string) => void;
   onCloseSidebar?: () => void;
+  isSidebarOpen: boolean;
 }
 
 export function ListManagement({
@@ -24,6 +25,7 @@ export function ListManagement({
   onSelectList,
   onDeleteList,
   onCloseSidebar,
+  isSidebarOpen,
 }: ListManagementProps) {
   const [newListName, setNewListName] = useState("");
 
@@ -41,6 +43,10 @@ export function ListManagement({
       onCloseSidebar?.();
     }
   };
+
+  if (!isSidebarOpen) {
+    return null;
+  }
 
   return (
     <div className="space-y-4">

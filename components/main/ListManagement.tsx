@@ -2,6 +2,17 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface List {
   _id: string;
@@ -28,6 +39,7 @@ export function ListManagement({
   isSidebarOpen,
 }: ListManagementProps) {
   const [newListName, setNewListName] = useState("");
+  const [listToDelete, setListToDelete] = useState<string | null>(null);
 
   const handleAddList = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +53,13 @@ export function ListManagement({
     onSelectList(id);
     if (window.innerWidth < 768) {
       onCloseSidebar?.();
+    }
+  };
+
+  const handleDeleteList = () => {
+    if (listToDelete) {
+      onDeleteList(listToDelete);
+      setListToDelete(null);
     }
   };
 
@@ -71,13 +90,34 @@ export function ListManagement({
             >
               {list.name}
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onDeleteList(list._id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setListToDelete(list._id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    the list "{list.name}" and all its associated tasks.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setListToDelete(null)}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteList}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </li>
         ))}
       </ul>

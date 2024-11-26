@@ -40,6 +40,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -278,7 +279,15 @@ export default function Home() {
   };
 
   const toggleSidebar = () => {
+    setIsAnimating(true);
     setIsSidebarOpen(!isSidebarOpen);
+    setTimeout(() => setIsAnimating(false), 300); // Match this with your transition duration
+  };
+
+  const getSelectedListName = () => {
+    return (
+      lists.find((list) => list._id === selectedList)?.name || "None selected"
+    );
   };
 
   if (status === "loading") {
@@ -300,23 +309,19 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-gray-100">
       <aside
-        className={`fixed md:relative z-30 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out overflow-hidden ${
-          isSidebarOpen ? "w-64" : "w-0 md:w-16"
+        className={`fixed md:relative z-30 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? "w-80" : "w-0"
         }`}
       >
-        <div className={`p-4 ${isSidebarOpen ? "" : "invisible md:visible"}`}>
-          <h1
-            className={`text-2xl font-bold mb-4 ${
-              isSidebarOpen ? "" : "md:hidden"
-            }`}
-          >
-            Todo Lists
-          </h1>
+        <div
+          className={`p-4 ${isSidebarOpen && !isAnimating ? "" : "invisible"}`}
+        >
+          <h1 className="text-2xl font-bold mb-4">Todo Lists</h1>
           <ListManagement
             lists={lists}
             selectedList={selectedList}
             onAddList={addList}
-            onSelectList={selectList}
+            onSelectList={setSelectedList}
             onDeleteList={deleteList}
             onCloseSidebar={() => setIsSidebarOpen(false)}
             isSidebarOpen={isSidebarOpen}
@@ -338,6 +343,9 @@ export default function Home() {
         <main className="flex-1 overflow-y-auto p-6">
           <Card className="w-full max-w-2xl mx-auto">
             <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-4">
+                {getSelectedListName()}
+              </h2>
               {error && <p className="text-red-500 mb-4">{error}</p>}
               <TaskManagement
                 tasks={tasks}

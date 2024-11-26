@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, Plus, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -10,14 +10,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Trash2, ChevronDown, ChevronUp, Plus, Calendar } from "lucide-react";
+import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format } from "date-fns";
 
 interface Subtask {
   _id?: string;
@@ -53,35 +53,12 @@ export function TaskManagement({
   onDeleteTask,
   onUpdateTask,
 }: TaskManagementProps) {
-  const [newTask, setNewTask] = useState("");
-  const [newSubtask, setNewSubtask] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const handleAddTask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newTask.trim() && selectedList) {
-      onAddTask(newTask, selectedDate);
-      setNewTask("");
-      setSelectedDate(undefined);
-      setIsDialogOpen(false);
-    }
-  };
-
-  const handleAddSubtask = (taskId: string) => {
-    if (newSubtask.trim()) {
-      const task = tasks.find((t) => t._id === taskId);
-      if (task) {
-        const updatedSubtasks = [
-          ...task.subtasks,
-          { title: newSubtask, completed: false },
-        ];
-        onUpdateTask(taskId, { subtasks: updatedSubtasks });
-        setNewSubtask("");
-      }
-    }
-  };
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState<Date | undefined>(
+    undefined
+  );
+  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
 
   const handleToggleSubtask = (taskId: string, subtaskIndex: number) => {
     const task = tasks.find((t) => t._id === taskId);
@@ -95,175 +72,150 @@ export function TaskManagement({
     }
   };
 
-  const handleDeleteSubtask = (taskId: string, subtaskIndex: number) => {
-    const task = tasks.find((t) => t._id === taskId);
-    if (task) {
-      const updatedSubtasks = task.subtasks.filter(
-        (_, index) => index !== subtaskIndex
-      );
-      onUpdateTask(taskId, { subtasks: updatedSubtasks });
+  const handleAddTask = () => {
+    if (newTaskTitle.trim() && selectedList) {
+      onAddTask(newTaskTitle, newTaskDueDate);
+      setNewTaskTitle("");
+      setNewTaskDueDate(undefined);
+      setIsAddTaskDialogOpen(false);
     }
   };
 
+  if (isLoading) {
+    return <div>Loading tasks...</div>;
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Tasks</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button disabled={!selectedList} size="sm">
-              Add Task
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Add New Task</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleAddTask} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="task-title">Task Title</Label>
-                <Input
-                  id="task-title"
-                  value={newTask}
-                  onChange={(e) => setNewTask(e.target.value)}
-                  placeholder="Enter task title"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="task-due-date">Due Date (Optional)</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="task-due-date"
-                      variant="outline"
-                      className={`w-full justify-start text-left font-normal ${
-                        !selectedDate && "text-muted-foreground"
-                      }`}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {selectedDate ? (
-                        format(selectedDate, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <Button type="submit" className="w-full">
-                Add Task
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-      {isLoading ? (
-        <div className="text-center">Loading tasks...</div>
-      ) : (
-        <ul className="space-y-2">
-          {tasks.map((task) => (
-            <li
-              key={task._id}
-              className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm"
-            >
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  checked={task.completed}
-                  onCheckedChange={() => onToggleTask(task._id, task.completed)}
-                />
-                <span
-                  className={`flex-grow text-sm ${
-                    task.completed ? "line-through text-gray-500" : ""
-                  }`}
-                >
-                  {task.title}
-                </span>
-                {task.dueDate && (
-                  <span className="text-xs text-gray-500">
-                    {format(new Date(task.dueDate), "MMM d")}
-                  </span>
+      <ul className="space-y-2">
+        {tasks.map((task) => (
+          <li
+            key={task._id}
+            className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm"
+          >
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={task.completed}
+                onCheckedChange={(checked) =>
+                  onToggleTask(task._id, checked as boolean)
+                }
+              />
+              <span
+                className={`flex-grow ${
+                  task.completed ? "line-through text-gray-500" : ""
+                }`}
+              >
+                {task.title}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  setExpandedTask(expandedTask === task._id ? null : task._id)
+                }
+              >
+                {expandedTask === task._id ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onDeleteTask(task._id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs"
-                  onClick={() =>
-                    setExpandedTask(expandedTask === task._id ? null : task._id)
-                  }
-                >
-                  {expandedTask === task._id ? "Hide" : "Show"}
-                </Button>
-              </div>
-              {expandedTask === task._id && (
-                <div className="mt-2 pl-6 space-y-2">
-                  <ul
-                    className="space-y-
-1"
-                  >
-                    {task.subtasks.map((subtask, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <Checkbox
-                          checked={subtask.completed}
-                          onCheckedChange={() =>
-                            handleToggleSubtask(task._id, index)
-                          }
-                        />
-                        <span
-                          className={`text-xs ${
-                            subtask.completed
-                              ? "line-through text-gray-500"
-                              : ""
-                          }`}
-                        >
-                          {subtask.title}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => handleDeleteSubtask(task._id, index)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      value={newSubtask}
-                      onChange={(e) => setNewSubtask(e.target.value)}
-                      placeholder="Add a subtask"
-                      className="flex-grow text-xs h-8"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={() => handleAddSubtask(task._id)}
-                    >
-                      <Plus className="w-3 h-3 mr-1" /> Add
-                    </Button>
-                  </div>
-                </div>
+              </Button>
+              {task.dueDate && (
+                <span className="text-sm text-gray-500">
+                  Due: {format(new Date(task.dueDate), "MMM d, yyyy")}
+                </span>
               )}
-            </li>
-          ))}
-        </ul>
-      )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDeleteTask(task._id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            {expandedTask === task._id && task.subtasks.length > 0 && (
+              <ul className="mt-2 pl-6 space-y-1">
+                {task.subtasks.map((subtask, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={subtask.completed}
+                      onCheckedChange={() =>
+                        handleToggleSubtask(task._id, index)
+                      }
+                    />
+                    <span
+                      className={
+                        subtask.completed ? "line-through text-gray-500" : ""
+                      }
+                    >
+                      {subtask.title}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+      <Dialog open={isAddTaskDialogOpen} onOpenChange={setIsAddTaskDialogOpen}>
+        <DialogTrigger asChild>
+          <Button className="w-full" disabled={!selectedList}>
+            <Plus className="mr-2 h-4 w-4" /> Add Task
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Task</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="task-title" className="text-right">
+                Title
+              </Label>
+              <Input
+                id="task-title"
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="due-date" className="text-right">
+                Due Date
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="due-date"
+                    variant="outline"
+                    className={`col-span-3 justify-start text-left font-normal ${
+                      !newTaskDueDate && "text-muted-foreground"
+                    }`}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {newTaskDueDate ? (
+                      format(newTaskDueDate, "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={newTaskDueDate}
+                    onSelect={setNewTaskDueDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <Button onClick={handleAddTask} disabled={!newTaskTitle.trim()}>
+            Add Task
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

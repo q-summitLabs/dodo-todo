@@ -80,9 +80,12 @@ export default function Home() {
 
   const addList = async (name: string) => {
     const tempId = uuidv4();
-    const tempList = { _id: tempId, name };
+    const newList = { _id: tempId, name };
 
-    setLists((prevLists) => [...prevLists, tempList]);
+    // Optimistically update the UI
+    setLists((prevLists) => [...prevLists, newList]);
+    setSelectedList(tempId);
+    setTasks([]); // Clear tasks when switching to a new list
 
     try {
       const response = await fetch("/api/lists", {
@@ -94,19 +97,32 @@ export default function Home() {
         throw new Error("Failed to add list");
       }
       const addedList = await response.json();
+      // Update the list with the real ID from the server
       setLists((prevLists) =>
         prevLists.map((list) => (list._id === tempId ? addedList : list))
       );
       setSelectedList(addedList._id);
-      fetchTasks(addedList._id);
     } catch (err) {
       setError("An error occurred while adding the list");
       console.error(err);
+      // Revert the optimistic update
       setLists((prevLists) => prevLists.filter((list) => list._id !== tempId));
+      if (lists.length > 0) {
+        setSelectedList(lists[0]._id);
+        fetchTasks(lists[0]._id);
+      } else {
+        setSelectedList(null);
+      }
     }
   };
 
   const deleteList = async (id: string) => {
+    // Store the current state for potential rollback
+    const previousLists = [...lists];
+    const previousSelectedList = selectedList;
+    const previousTasks = [...tasks];
+
+    // Optimistically update the UI
     setLists((prevLists) => prevLists.filter((list) => list._id !== id));
     if (selectedList === id) {
       const remainingLists = lists.filter((list) => list._id !== id);
@@ -129,8 +145,18 @@ export default function Home() {
     } catch (err) {
       setError("An error occurred while deleting the list");
       console.error(err);
-      fetchLists(); // Refetch all lists if delete fails
+      // Revert the optimistic update
+      setLists(previousLists);
+      setSelectedList(previousSelectedList);
+      setTasks(previousTasks);
     }
+  };
+
+  const selectList = (id: string) => {
+    // Optimistically update the UI
+    setSelectedList(id);
+    setIsLoading(true);
+    fetchTasks(id);
   };
 
   const addTask = async (title: string) => {
@@ -212,6 +238,14 @@ export default function Home() {
     }
   };
 
+  if (status === "loading") {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Authenticating...
+      </div>
+    );
+  }
+
   if (status === "unauthenticated") {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -229,10 +263,7 @@ export default function Home() {
           lists={lists}
           selectedList={selectedList}
           onAddList={addList}
-          onSelectList={(id) => {
-            setSelectedList(id);
-            fetchTasks(id);
-          }}
+          onSelectList={selectList}
           onDeleteList={deleteList}
         />
         <TaskManagement

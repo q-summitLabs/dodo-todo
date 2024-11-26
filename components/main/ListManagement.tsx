@@ -69,9 +69,21 @@ export function ListManagement({
         </div>
       </form>
       <div className="space-y-2">
-        <Select value={selectedList || ""} onValueChange={onSelectList}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a list" />
+        <Select
+          value={selectedList || ""}
+          onValueChange={onSelectList}
+          disabled={lists.length === 0}
+        >
+          <SelectTrigger
+            className={
+              lists.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+            }
+          >
+            <SelectValue
+              placeholder={
+                lists.length === 0 ? "No lists available" : "Select a list"
+              }
+            />
           </SelectTrigger>
           <SelectContent>
             {lists.map((list) => (

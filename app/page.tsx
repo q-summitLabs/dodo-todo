@@ -7,11 +7,22 @@ import { v4 as uuidv4 } from "uuid";
 import { Header } from "@/components/main/Header";
 import { ListManagement } from "@/components/main/ListManagement";
 import { TaskManagement } from "@/components/main/TaskManagement";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+
+interface Subtask {
+  _id?: string;
+  title: string;
+  completed: boolean;
+}
 
 interface Task {
   _id: string;
   title: string;
   completed: boolean;
+  dueDate?: Date;
+  subtasks: Subtask[];
   listId: string;
 }
 
@@ -28,6 +39,8 @@ export default function Home() {
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -36,6 +49,12 @@ export default function Home() {
       fetchLists();
     }
   }, [status, router]);
+
+  useEffect(() => {
+    if (selectedList) {
+      fetchTasks(selectedList);
+    }
+  }, [selectedList]);
 
   const fetchLists = async () => {
     setIsLoading(true);
@@ -49,7 +68,6 @@ export default function Home() {
       setLists(data);
       if (data.length > 0) {
         setSelectedList(data[0]._id);
-        fetchTasks(data[0]._id);
       } else {
         setIsLoading(false);
       }
@@ -82,10 +100,9 @@ export default function Home() {
     const tempId = uuidv4();
     const newList = { _id: tempId, name };
 
-    // Optimistically update the UI
     setLists((prevLists) => [...prevLists, newList]);
     setSelectedList(tempId);
-    setTasks([]); // Clear tasks when switching to a new list
+    setTasks([]);
 
     try {
       const response = await fetch("/api/lists", {
@@ -97,7 +114,6 @@ export default function Home() {
         throw new Error("Failed to add list");
       }
       const addedList = await response.json();
-      // Update the list with the real ID from the server
       setLists((prevLists) =>
         prevLists.map((list) => (list._id === tempId ? addedList : list))
       );
@@ -105,7 +121,6 @@ export default function Home() {
     } catch (err) {
       setError("An error occurred while adding the list");
       console.error(err);
-      // Revert the optimistic update
       setLists((prevLists) => prevLists.filter((list) => list._id !== tempId));
       if (lists.length > 0) {
         setSelectedList(lists[0]._id);
@@ -117,12 +132,10 @@ export default function Home() {
   };
 
   const deleteList = async (id: string) => {
-    // Store the current state for potential rollback
     const previousLists = [...lists];
     const previousSelectedList = selectedList;
     const previousTasks = [...tasks];
 
-    // Optimistically update the UI
     setLists((prevLists) => prevLists.filter((list) => list._id !== id));
     if (selectedList === id) {
       const remainingLists = lists.filter((list) => list._id !== id);
@@ -145,7 +158,6 @@ export default function Home() {
     } catch (err) {
       setError("An error occurred while deleting the list");
       console.error(err);
-      // Revert the optimistic update
       setLists(previousLists);
       setSelectedList(previousSelectedList);
       setTasks(previousTasks);
@@ -153,13 +165,15 @@ export default function Home() {
   };
 
   const selectList = (id: string) => {
-    // Optimistically update the UI
     setSelectedList(id);
-    setIsLoading(true);
     fetchTasks(id);
   };
 
-  const addTask = async (title: string) => {
+  const addTask = async (
+    title: string,
+    dueDate?: Date,
+    subtasks: Subtask[] = []
+  ) => {
     if (!selectedList) return;
 
     const tempId = uuidv4();
@@ -167,6 +181,8 @@ export default function Home() {
       _id: tempId,
       title,
       completed: false,
+      dueDate,
+      subtasks,
       listId: selectedList,
     };
 
@@ -176,7 +192,12 @@ export default function Home() {
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, listId: selectedList }),
+        body: JSON.stringify({
+          title,
+          listId: selectedList,
+          dueDate,
+          subtasks,
+        }),
       });
       if (!response.ok) {
         throw new Error("Failed to add task");
@@ -238,6 +259,41 @@ export default function Home() {
     }
   };
 
+  const updateTask = async (id: string, updates: Partial<Task>) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task._id === id ? { ...task, ...updates } : task
+      )
+    );
+
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...updates }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update task");
+      }
+    } catch (err) {
+      setError("An error occurred while updating the task");
+      console.error(err);
+      await fetchTasks(selectedList!);
+    }
+  };
+
+  const toggleSidebar = () => {
+    setIsAnimating(true);
+    setIsSidebarOpen(!isSidebarOpen);
+    setTimeout(() => setIsAnimating(false), 300); // Match this with your transition duration
+  };
+
+  const getSelectedListName = () => {
+    return (
+      lists.find((list) => list._id === selectedList)?.name || "None selected"
+    );
+  };
+
   if (status === "loading") {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -255,25 +311,58 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <Header />
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <ListManagement
-          lists={lists}
-          selectedList={selectedList}
-          onAddList={addList}
-          onSelectList={selectList}
-          onDeleteList={deleteList}
-        />
-        <TaskManagement
-          tasks={tasks}
-          isLoading={isLoading}
-          selectedList={selectedList}
-          onAddTask={addTask}
-          onToggleTask={toggleTask}
-          onDeleteTask={deleteTask}
-        />
+    <div className="flex h-screen bg-gray-100">
+      <aside
+        className={`fixed md:relative z-30 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? "w-80" : "w-0"
+        }`}
+      >
+        <div
+          className={`p-4 ${isSidebarOpen && !isAnimating ? "" : "invisible"}`}
+        >
+          <h1 className="text-2xl font-bold mb-4">Todo Lists</h1>
+          <ListManagement
+            lists={lists}
+            selectedList={selectedList}
+            onAddList={addList}
+            onSelectList={selectList}
+            onDeleteList={deleteList}
+            onCloseSidebar={() => setIsSidebarOpen(false)}
+            isSidebarOpen={isSidebarOpen}
+          />
+        </div>
+      </aside>
+      <div className="flex-1 flex flex-col transition-all duration-300 ease-in-out">
+        <Header>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mr-2"
+            onClick={toggleSidebar}
+            aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+        </Header>
+        <main className="flex-1 overflow-y-auto p-6">
+          <Card className="w-full max-w-2xl mx-auto">
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-2">
+                {getSelectedListName()}
+              </h2>
+              {error && <p className="text-red-500 mb-4">{error}</p>}
+              <TaskManagement
+                tasks={tasks}
+                isLoading={isLoading}
+                selectedList={selectedList}
+                onAddTask={addTask}
+                onToggleTask={toggleTask}
+                onDeleteTask={deleteTask}
+                onUpdateTask={updateTask}
+              />
+            </CardContent>
+          </Card>
+        </main>
       </div>
     </div>
   );

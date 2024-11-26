@@ -31,8 +31,14 @@ export async function POST(request: Request) {
   }
 
   await dbConnect();
-  const { title, listId } = await request.json();
-  const task = await Task.create({ title, listId, user: session.user.id });
+  const { title, listId, dueDate, subtasks } = await request.json();
+  const task = await Task.create({
+    title,
+    listId,
+    user: session.user.id,
+    dueDate: dueDate || null,
+    subtasks: subtasks || [],
+  });
   return NextResponse.json(task, { status: 201 });
 }
 
@@ -43,10 +49,10 @@ export async function PUT(request: Request) {
   }
 
   await dbConnect();
-  const { id, title, completed } = await request.json();
+  const { id, title, completed, dueDate, subtasks } = await request.json();
   const task = await Task.findOneAndUpdate(
     { _id: id, user: session.user.id },
-    { title, completed },
+    { title, completed, dueDate, subtasks },
     { new: true }
   );
   if (!task) {

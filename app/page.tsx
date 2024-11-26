@@ -8,10 +8,18 @@ import { Header } from "@/components/main/Header";
 import { ListManagement } from "@/components/main/ListManagement";
 import { TaskManagement } from "@/components/main/TaskManagement";
 
+interface Subtask {
+  _id?: string;
+  title: string;
+  completed: boolean;
+}
+
 interface Task {
   _id: string;
   title: string;
   completed: boolean;
+  dueDate?: Date;
+  subtasks: Subtask[];
   listId: string;
 }
 
@@ -82,10 +90,9 @@ export default function Home() {
     const tempId = uuidv4();
     const newList = { _id: tempId, name };
 
-    // Optimistically update the UI
     setLists((prevLists) => [...prevLists, newList]);
     setSelectedList(tempId);
-    setTasks([]); // Clear tasks when switching to a new list
+    setTasks([]);
 
     try {
       const response = await fetch("/api/lists", {
@@ -97,7 +104,6 @@ export default function Home() {
         throw new Error("Failed to add list");
       }
       const addedList = await response.json();
-      // Update the list with the real ID from the server
       setLists((prevLists) =>
         prevLists.map((list) => (list._id === tempId ? addedList : list))
       );
@@ -105,7 +111,6 @@ export default function Home() {
     } catch (err) {
       setError("An error occurred while adding the list");
       console.error(err);
-      // Revert the optimistic update
       setLists((prevLists) => prevLists.filter((list) => list._id !== tempId));
       if (lists.length > 0) {
         setSelectedList(lists[0]._id);
@@ -117,12 +122,10 @@ export default function Home() {
   };
 
   const deleteList = async (id: string) => {
-    // Store the current state for potential rollback
     const previousLists = [...lists];
     const previousSelectedList = selectedList;
     const previousTasks = [...tasks];
 
-    // Optimistically update the UI
     setLists((prevLists) => prevLists.filter((list) => list._id !== id));
     if (selectedList === id) {
       const remainingLists = lists.filter((list) => list._id !== id);
@@ -145,7 +148,6 @@ export default function Home() {
     } catch (err) {
       setError("An error occurred while deleting the list");
       console.error(err);
-      // Revert the optimistic update
       setLists(previousLists);
       setSelectedList(previousSelectedList);
       setTasks(previousTasks);
@@ -153,13 +155,16 @@ export default function Home() {
   };
 
   const selectList = (id: string) => {
-    // Optimistically update the UI
     setSelectedList(id);
     setIsLoading(true);
     fetchTasks(id);
   };
 
-  const addTask = async (title: string) => {
+  const addTask = async (
+    title: string,
+    dueDate?: Date,
+    subtasks: Subtask[] = []
+  ) => {
     if (!selectedList) return;
 
     const tempId = uuidv4();
@@ -167,6 +172,8 @@ export default function Home() {
       _id: tempId,
       title,
       completed: false,
+      dueDate,
+      subtasks,
       listId: selectedList,
     };
 
@@ -176,7 +183,12 @@ export default function Home() {
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, listId: selectedList }),
+        body: JSON.stringify({
+          title,
+          listId: selectedList,
+          dueDate,
+          subtasks,
+        }),
       });
       if (!response.ok) {
         throw new Error("Failed to add task");
@@ -238,6 +250,29 @@ export default function Home() {
     }
   };
 
+  const updateTask = async (id: string, updates: Partial<Task>) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task._id === id ? { ...task, ...updates } : task
+      )
+    );
+
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...updates }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update task");
+      }
+    } catch (err) {
+      setError("An error occurred while updating the task");
+      console.error(err);
+      await fetchTasks(selectedList!);
+    }
+  };
+
   if (status === "loading") {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -273,6 +308,7 @@ export default function Home() {
           onAddTask={addTask}
           onToggleTask={toggleTask}
           onDeleteTask={deleteTask}
+          onUpdateTask={updateTask}
         />
       </div>
     </div>

@@ -4,14 +4,21 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/dbConnect";
 import Task from "@/models/Task";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user || !session.user.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const listId = searchParams.get("listId");
+
+  if (!listId) {
+    return NextResponse.json({ error: "List ID is required" }, { status: 400 });
+  }
+
   await dbConnect();
-  const tasks = await Task.find({ user: session.user.id }).sort({
+  const tasks = await Task.find({ user: session.user.id, listId }).sort({
     createdAt: -1,
   });
   return NextResponse.json(tasks);
@@ -24,8 +31,8 @@ export async function POST(request: Request) {
   }
 
   await dbConnect();
-  const { title } = await request.json();
-  const task = await Task.create({ title, user: session.user.id });
+  const { title, listId } = await request.json();
+  const task = await Task.create({ title, listId, user: session.user.id });
   return NextResponse.json(task, { status: 201 });
 }
 

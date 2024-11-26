@@ -16,10 +16,7 @@ const UserSchema = new mongoose.Schema(
       default: Date.now,
     },
   },
-  {
-    timestamps: true,
-    collection: "users", // This sets the collection name
-  }
+  { timestamps: true, collection: "users" }
 );
 
 export default mongoose.models.User || mongoose.model("User", UserSchema);

@@ -16,8 +16,13 @@ const TaskSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    listId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "List",
+      required: true,
+    },
   },
-  { timestamps: true, collection: "tasks" } // This sets the collection name}
+  { timestamps: true, collection: "tasks" }
 );
 
 export default mongoose.models.Task || mongoose.model("Task", TaskSchema);

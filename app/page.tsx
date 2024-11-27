@@ -46,7 +46,17 @@ export default function Home() {
     if (status === "unauthenticated") {
       router.push("/login");
     } else if (status === "authenticated") {
-      fetchLists();
+      const savedListId = localStorage.getItem("selectedListId");
+      fetchLists().then((fetchedLists) => {
+        if (
+          savedListId &&
+          fetchedLists.some((list: List) => list._id === savedListId)
+        ) {
+          setSelectedList(savedListId);
+        } else if (fetchedLists.length > 0) {
+          setSelectedList(fetchedLists[0]._id);
+        }
+      });
     }
   }, [status, router]);
 
@@ -66,15 +76,13 @@ export default function Home() {
       }
       const data = await response.json();
       setLists(data);
-      if (data.length > 0) {
-        setSelectedList(data[0]._id);
-      } else {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
+      return data;
     } catch (err) {
       setError("An error occurred while fetching lists");
       console.error(err);
       setIsLoading(false);
+      return [];
     }
   };
 
@@ -166,11 +174,12 @@ export default function Home() {
 
   const selectList = (id: string) => {
     setSelectedList(id);
-    fetchTasks(id);
+    localStorage.setItem("selectedListId", id);
   };
 
   const addTask = async (
     title: string,
+    description: string,
     dueDate?: Date,
     subtasks: Subtask[] = []
   ) => {
@@ -180,6 +189,7 @@ export default function Home() {
     const tempTask = {
       _id: tempId,
       title,
+      description,
       completed: false,
       dueDate,
       subtasks,
@@ -347,7 +357,7 @@ export default function Home() {
         <main className="flex-1 overflow-y-auto p-6">
           <Card className="w-full max-w-2xl mx-auto">
             <CardContent className="p-6">
-              <h2 className="text-2xl font-bold mb-2">
+              <h2 className="text-2xl font-bold mb-4">
                 {getSelectedListName()}
               </h2>
               {error && <p className="text-red-500 mb-4">{error}</p>}

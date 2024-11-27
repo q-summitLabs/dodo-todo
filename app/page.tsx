@@ -51,10 +51,10 @@ export default function Home() {
   }, [status, router]);
 
   useEffect(() => {
-    if (selectedList) {
+    if (selectedList && lists.length > 0) {
       fetchTasks(selectedList);
     }
-  }, [selectedList]);
+  }, [selectedList, lists]);
 
   const fetchLists = async () => {
     setIsLoading(true);
@@ -81,19 +81,28 @@ export default function Home() {
   const fetchTasks = async (listId: string) => {
     setIsLoading(true);
     setError(null);
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     try {
-      const response = await fetch(`/api/tasks?listId=${listId}`);
+      const response = await fetch(`/api/tasks?listId=${listId}`, { signal });
       if (!response.ok) {
         throw new Error("Failed to fetch tasks");
       }
       const data = await response.json();
       setTasks(data);
     } catch (err) {
-      setError("An error occurred while fetching tasks");
-      console.error(err);
+      if (err instanceof Error && err.name === "AbortError") {
+        console.log("Fetch aborted");
+      } else {
+        setError("An error occurred while fetching tasks");
+        console.error(err);
+      }
     } finally {
       setIsLoading(false);
     }
+
+    return () => controller.abort();
   };
 
   const addList = async (name: string) => {
@@ -165,8 +174,9 @@ export default function Home() {
   };
 
   const selectList = (id: string) => {
-    setSelectedList(id);
-    fetchTasks(id);
+    if (id !== selectedList) {
+      setSelectedList(id);
+    }
   };
 
   const addTask = async (

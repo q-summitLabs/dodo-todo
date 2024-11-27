@@ -46,7 +46,17 @@ export default function Home() {
     if (status === "unauthenticated") {
       router.push("/login");
     } else if (status === "authenticated") {
-      fetchLists();
+      const savedListId = localStorage.getItem("selectedListId");
+      fetchLists().then((fetchedLists) => {
+        if (
+          savedListId &&
+          fetchedLists.some((list: List) => list._id === savedListId)
+        ) {
+          setSelectedList(savedListId);
+        } else if (fetchedLists.length > 0) {
+          setSelectedList(fetchedLists[0]._id);
+        }
+      });
     }
   }, [status, router]);
 
@@ -55,19 +65,6 @@ export default function Home() {
       fetchTasks(selectedList);
     }
   }, [selectedList]);
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetchLists().then(() => {
-        const savedListId = localStorage.getItem("selectedListId");
-        if (savedListId) {
-          setSelectedList(savedListId);
-        } else if (lists.length > 0) {
-          setSelectedList(lists[0]._id);
-        }
-      });
-    }
-  }, [status]);
 
   const fetchLists = async () => {
     setIsLoading(true);
@@ -79,15 +76,13 @@ export default function Home() {
       }
       const data = await response.json();
       setLists(data);
-      if (data.length > 0) {
-        setSelectedList(data[0]._id);
-      } else {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
+      return data;
     } catch (err) {
       setError("An error occurred while fetching lists");
       console.error(err);
       setIsLoading(false);
+      return [];
     }
   };
 
@@ -180,7 +175,6 @@ export default function Home() {
   const selectList = (id: string) => {
     setSelectedList(id);
     localStorage.setItem("selectedListId", id);
-    fetchTasks(id);
   };
 
   const addTask = async (

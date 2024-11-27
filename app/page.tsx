@@ -51,10 +51,17 @@ export default function Home() {
   }, [status, router]);
 
   useEffect(() => {
-    if (selectedList && lists.length > 0) {
+    if (selectedList) {
       fetchTasks(selectedList);
     }
-  }, [selectedList, lists]);
+  }, [selectedList]);
+
+  useEffect(() => {
+    const savedListId = localStorage.getItem("selectedListId");
+    if (savedListId) {
+      setSelectedList(savedListId);
+    }
+  }, []);
 
   const fetchLists = async () => {
     setIsLoading(true);
@@ -81,28 +88,19 @@ export default function Home() {
   const fetchTasks = async (listId: string) => {
     setIsLoading(true);
     setError(null);
-    const controller = new AbortController();
-    const signal = controller.signal;
-
     try {
-      const response = await fetch(`/api/tasks?listId=${listId}`, { signal });
+      const response = await fetch(`/api/tasks?listId=${listId}`);
       if (!response.ok) {
         throw new Error("Failed to fetch tasks");
       }
       const data = await response.json();
       setTasks(data);
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        console.log("Fetch aborted");
-      } else {
-        setError("An error occurred while fetching tasks");
-        console.error(err);
-      }
+      setError("An error occurred while fetching tasks");
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
-
-    return () => controller.abort();
   };
 
   const addList = async (name: string) => {
@@ -174,9 +172,9 @@ export default function Home() {
   };
 
   const selectList = (id: string) => {
-    if (id !== selectedList) {
-      setSelectedList(id);
-    }
+    setSelectedList(id);
+    localStorage.setItem("selectedListId", id);
+    fetchTasks(id);
   };
 
   const addTask = async (
@@ -191,9 +189,9 @@ export default function Home() {
     const tempTask = {
       _id: tempId,
       title,
+      description,
       completed: false,
       dueDate,
-      description,
       subtasks,
       listId: selectedList,
     };
@@ -206,9 +204,9 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
+          description,
           listId: selectedList,
           dueDate,
-          description,
           subtasks,
         }),
       });
@@ -360,7 +358,7 @@ export default function Home() {
         <main className="flex-1 overflow-y-auto p-6">
           <Card className="w-full max-w-2xl mx-auto">
             <CardContent className="p-6">
-              <h2 className="text-2xl font-bold mb-2">
+              <h2 className="text-2xl font-bold mb-4">
                 {getSelectedListName()}
               </h2>
               {error && <p className="text-red-500 mb-4">{error}</p>}

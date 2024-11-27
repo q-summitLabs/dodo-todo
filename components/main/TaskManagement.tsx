@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,11 @@ import {
 } from "@/components/ui/dialog";
 import {
   Trash2,
-  ChevronDown,
-  ChevronUp,
   Plus,
   Calendar,
   Edit2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -67,13 +67,13 @@ export function TaskManagement({
   onDeleteTask,
   onUpdateTask,
 }: TaskManagementProps) {
-  const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskDueDate, setNewTaskDueDate] = useState<Date | undefined>(
     undefined
   );
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
+  const [collapsedTasks, setCollapsedTasks] = useState(new Set<string>());
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [editingSubtask, setEditingSubtask] = useState<{
@@ -81,6 +81,18 @@ export function TaskManagement({
     subtaskIndex: number;
     title: string;
   } | null>(null);
+
+  useEffect(() => {
+    // Only reset collapsed tasks for new tasks
+    const newTaskIds = tasks
+      .filter((task) => !collapsedTasks.has(task._id))
+      .map((task) => task._id);
+    setCollapsedTasks((prev) => {
+      const newSet = new Set(prev);
+      newTaskIds.forEach((id) => newSet.delete(id));
+      return newSet;
+    });
+  }, [tasks]);
 
   const handleToggleSubtask = (taskId: string, subtaskIndex: number) => {
     const task = tasks.find((t) => t._id === taskId);
@@ -154,6 +166,18 @@ export function TaskManagement({
     }
   };
 
+  const toggleTaskCollapse = (taskId: string) => {
+    setCollapsedTasks((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
   if (isLoading) {
     return <div>Loading tasks...</div>;
   }
@@ -183,26 +207,26 @@ export function TaskManagement({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setEditingTask(task)}
+                onClick={() => toggleTaskCollapse(task._id)}
               >
-                <Edit2 className="h-4 w-4" />
-                <span className="sr-only">Edit task</span>
+                {collapsedTasks.has(task._id) ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronUp className="h-4 w-4" />
+                )}
+                <span className="sr-only">
+                  {collapsedTasks.has(task._id)
+                    ? "Expand subtasks"
+                    : "Collapse subtasks"}
+                </span>
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() =>
-                  setExpandedTask(expandedTask === task._id ? null : task._id)
-                }
+                onClick={() => setEditingTask(task)}
               >
-                {expandedTask === task._id ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-                <span className="sr-only">
-                  {expandedTask === task._id ? "Collapse task" : "Expand task"}
-                </span>
+                <Edit2 className="h-4 w-4" />
+                <span className="sr-only">Edit task</span>
               </Button>
               {task.dueDate && (
                 <span className="text-sm text-gray-500">
@@ -218,7 +242,7 @@ export function TaskManagement({
                 <span className="sr-only">Delete task</span>
               </Button>
             </div>
-            {expandedTask === task._id && (
+            {!collapsedTasks.has(task._id) && (
               <div className="mt-2 pl-6 space-y-2">
                 {task.description && (
                   <p className="text-sm text-gray-600">{task.description}</p>
@@ -314,9 +338,7 @@ export function TaskManagement({
               <Textarea
                 id="task-description"
                 value={newTaskDescription}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  setNewTaskDescription(e.target.value)
-                }
+                onChange={(e) => setNewTaskDescription(e.target.value)}
                 className="col-span-3"
               />
             </div>
@@ -384,7 +406,7 @@ export function TaskManagement({
                 <Textarea
                   id="edit-task-description"
                   value={editingTask.description || ""}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  onChange={(e) =>
                     setEditingTask({
                       ...editingTask,
                       description: e.target.value,

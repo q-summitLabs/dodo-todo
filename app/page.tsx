@@ -57,11 +57,17 @@ export default function Home() {
   }, [selectedList]);
 
   useEffect(() => {
-    const savedListId = localStorage.getItem("selectedListId");
-    if (savedListId) {
-      setSelectedList(savedListId);
+    if (status === "authenticated") {
+      fetchLists().then(() => {
+        const savedListId = localStorage.getItem("selectedListId");
+        if (savedListId) {
+          setSelectedList(savedListId);
+        } else if (lists.length > 0) {
+          setSelectedList(lists[0]._id);
+        }
+      });
     }
-  }, []);
+  }, [status]);
 
   const fetchLists = async () => {
     setIsLoading(true);
@@ -204,7 +210,6 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
-          description,
           listId: selectedList,
           dueDate,
           subtasks,

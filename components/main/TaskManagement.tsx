@@ -73,7 +73,7 @@ export function TaskManagement({
     undefined
   );
   const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
-  const [collapsedTasks, setCollapsedTasks] = useState(new Set<string>());
+  const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [editingSubtask, setEditingSubtask] = useState<{
@@ -83,16 +83,20 @@ export function TaskManagement({
   } | null>(null);
 
   useEffect(() => {
-    // Only reset collapsed tasks for new tasks
-    const newTaskIds = tasks
-      .filter((task) => !collapsedTasks.has(task._id))
-      .map((task) => task._id);
-    setCollapsedTasks((prev) => {
-      const newSet = new Set(prev);
-      newTaskIds.forEach((id) => newSet.delete(id));
-      return newSet;
-    });
-  }, [tasks]);
+    if (typeof window !== "undefined" && selectedList) {
+      const saved = localStorage.getItem(`collapsedTasks_${selectedList}`);
+      setCollapsedTasks(new Set(saved ? JSON.parse(saved) : []));
+    }
+  }, [selectedList]);
+
+  useEffect(() => {
+    if (selectedList) {
+      localStorage.setItem(
+        `collapsedTasks_${selectedList}`,
+        JSON.stringify(Array.from(collapsedTasks))
+      );
+    }
+  }, [collapsedTasks, selectedList]);
 
   const handleToggleSubtask = (taskId: string, subtaskIndex: number) => {
     const task = tasks.find((t) => t._id === taskId);

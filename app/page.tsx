@@ -181,6 +181,7 @@ export default function Home() {
 
   const addTask = async (
     title: string,
+    description: string,
     dueDate?: Date,
     subtasks: Subtask[] = []
   ) => {
@@ -192,6 +193,7 @@ export default function Home() {
       title,
       completed: false,
       dueDate,
+      description,
       subtasks,
       listId: selectedList,
     };
@@ -206,6 +208,7 @@ export default function Home() {
           title,
           listId: selectedList,
           dueDate,
+          description,
           subtasks,
         }),
       });

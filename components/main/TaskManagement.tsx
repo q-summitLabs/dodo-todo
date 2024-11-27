@@ -3,6 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ interface Subtask {
 interface Task {
   _id: string;
   title: string;
+  description?: string;
   completed: boolean;
   dueDate?: Date;
   subtasks: Subtask[];
@@ -45,7 +47,12 @@ interface TaskManagementProps {
   tasks: Task[];
   isLoading: boolean;
   selectedList: string | null;
-  onAddTask: (title: string, dueDate?: Date, subtasks?: Subtask[]) => void;
+  onAddTask: (
+    title: string,
+    description: string,
+    dueDate?: Date,
+    subtasks?: Subtask[]
+  ) => void;
   onToggleTask: (id: string, completed: boolean) => void;
   onDeleteTask: (id: string) => void;
   onUpdateTask: (id: string, updates: Partial<Task>) => void;
@@ -62,6 +69,7 @@ export function TaskManagement({
 }: TaskManagementProps) {
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskDueDate, setNewTaskDueDate] = useState<Date | undefined>(
     undefined
   );
@@ -88,8 +96,9 @@ export function TaskManagement({
 
   const handleAddTask = () => {
     if (newTaskTitle.trim() && selectedList) {
-      onAddTask(newTaskTitle, newTaskDueDate);
+      onAddTask(newTaskTitle, newTaskDescription, newTaskDueDate);
       setNewTaskTitle("");
+      setNewTaskDescription("");
       setNewTaskDueDate(undefined);
       setIsAddTaskDialogOpen(false);
     }
@@ -113,6 +122,7 @@ export function TaskManagement({
     if (editingTask && editingTask.title.trim()) {
       onUpdateTask(editingTask._id, {
         title: editingTask.title,
+        description: editingTask.description,
         dueDate: editingTask.dueDate,
       });
       setEditingTask(null);
@@ -210,6 +220,9 @@ export function TaskManagement({
             </div>
             {expandedTask === task._id && (
               <div className="mt-2 pl-6 space-y-2">
+                {task.description && (
+                  <p className="text-sm text-gray-600">{task.description}</p>
+                )}
                 <ul className="space-y-1">
                   {task.subtasks.map((subtask, index) => (
                     <li key={index} className="flex items-center gap-2">
@@ -295,6 +308,19 @@ export function TaskManagement({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="task-description" className="text-right">
+                Description
+              </Label>
+              <Textarea
+                id="task-description"
+                value={newTaskDescription}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setNewTaskDescription(e.target.value)
+                }
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="due-date" className="text-right">
                 Due Date
               </Label>
@@ -347,6 +373,22 @@ export function TaskManagement({
                   value={editingTask.title}
                   onChange={(e) =>
                     setEditingTask({ ...editingTask, title: e.target.value })
+                  }
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-task-description" className="text-right">
+                  Description
+                </Label>
+                <Textarea
+                  id="edit-task-description"
+                  value={editingTask.description || ""}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    setEditingTask({
+                      ...editingTask,
+                      description: e.target.value,
+                    })
                   }
                   className="col-span-3"
                 />

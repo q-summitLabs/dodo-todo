@@ -31,10 +31,12 @@ export async function POST(request: Request) {
   }
 
   await dbConnect();
-  const { title, listId, dueDate, subtasks } = await request.json();
+  const { title, listId, dueDate, description, subtasks } =
+    await request.json();
   const task = await Task.create({
     title,
     listId,
+    description,
     user: session.user.id,
     dueDate: dueDate || null,
     subtasks: subtasks || [],
@@ -49,10 +51,11 @@ export async function PUT(request: Request) {
   }
 
   await dbConnect();
-  const { id, title, completed, dueDate, subtasks } = await request.json();
+  const { id, title, completed, dueDate, description, subtasks } =
+    await request.json();
   const task = await Task.findOneAndUpdate(
     { _id: id, user: session.user.id },
-    { title, completed, dueDate, subtasks },
+    { title, completed, dueDate, description, subtasks },
     { new: true }
   );
   if (!task) {
